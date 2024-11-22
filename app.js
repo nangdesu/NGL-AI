@@ -17,26 +17,36 @@ async function switchTutor(role) {
     // Clear chat history on the frontend
     document.getElementById('chat-history').innerHTML = '';
 
-    // Notify the backend to clear history
-    await fetch('/api/clear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role })
-    });
+    try {
+        // Notify the backend to clear history
+        await fetch('https://my-node-backend-0f59b9fb4442.herokuapp.com/api/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+        });
 
-    toggleSlidingMenu();
-    alert(`Switched to ${role.charAt(0).toUpperCase() + role.slice(1)} Tutor.`);
+        toggleSlidingMenu();
+        alert(`Switched to ${role.charAt(0).toUpperCase() + role.slice(1)} Tutor.`);
+    } catch (error) {
+        console.error('Error switching tutor:', error);
+        alert('Failed to switch tutor. Please try again.');
+    }
 }
 
 async function loadHistory() {
-    const response = await fetch(`/api/history?role=${currentRole}`);
-    const history = await response.json();
-    const chatHistory = document.getElementById('chat-history');
-    chatHistory.innerHTML = ''; // Clear existing messages
+    try {
+        const response = await fetch(`https://my-node-backend-0f59b9fb4442.herokuapp.com/api/history?role=${currentRole}`);
+        const history = await response.json();
+        const chatHistory = document.getElementById('chat-history');
+        chatHistory.innerHTML = ''; // Clear existing messages
 
-    history.forEach(entry => {
-        addMessage(entry.content, entry.role === 'User' ? 'user-message' : 'response-message');
-    });
+        history.forEach(entry => {
+            addMessage(entry.content, entry.role === 'User' ? 'user-message' : 'response-message');
+        });
+    } catch (error) {
+        console.error('Error loading chat history:', error);
+        alert('Failed to load chat history.');
+    }
 }
 
 async function sendMessage() {
@@ -48,7 +58,7 @@ async function sendMessage() {
     addMessage(message, 'user-message');
 
     try {
-        const response = await fetch('/api/chat', {
+        const response = await fetch('https://my-node-backend-0f59b9fb4442.herokuapp.com/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message, role: currentRole })
@@ -57,7 +67,7 @@ async function sendMessage() {
         const data = await response.json();
         addMessage(data.response, 'response-message');
     } catch (error) {
-        console.error(error);
+        console.error('Error sending message:', error);
         addMessage('Error: Unable to get a response.', 'response-message');
     }
 
@@ -76,3 +86,14 @@ function addMessage(content, className) {
     chatHistory.appendChild(messageWrapper);
     chatHistory.scrollTop = chatHistory.scrollHeight; // Scroll to bottom
 }
+
+// Ensure the sliding menu and chat UI initializes correctly
+document.addEventListener('DOMContentLoaded', () => {
+    loadHistory(); // Load history on page load
+    document.getElementById('message-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+});
